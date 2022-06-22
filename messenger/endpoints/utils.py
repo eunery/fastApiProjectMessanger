@@ -2,6 +2,7 @@
 from datetime import datetime
 from os import getenv
 import pytz
+from aiohttp import ClientSession, ClientTimeout
 
 from fastapi import APIRouter, WebSocket, Body, Depends
 
@@ -10,7 +11,6 @@ from deps import get_db, get_current_user
 from fastapi.responses import HTMLResponse
 
 from core.broker.celery import celery_app
-from aiohttp import ClientSession, ClientTimeout
 from core.broker.redis import redis
 
 import crud.message as crud_messages
@@ -29,6 +29,25 @@ def send_celery_task(begin_datetime: datetime):
     dt_with_timezone = timezone.localize(begin_datetime)
 
     celery_app.send_task("queue.test", eta=dt_with_timezone)
+
+
+
+
+async def async_query(task_url: str, timeout: int = 5, **kwargs):
+    """Выполняет post-запрос во внутренний rest api сервис
+
+    Args:
+        task_url: ссылка на endpoint
+        timeout: таймаут запроса
+        **kwargs: параметры тела запроса
+    """
+    timeout = ClientTimeout(total=timeout)
+    async with ClientSession(timeout=timeout) as session:
+        async with session.post(task_url, json=kwargs) as response:
+            result = await response.json()
+            if response.status != 200:
+                raise Exception
+    return result
 
 
 @router.get("/ws-page")
@@ -76,20 +95,3 @@ async def post_process_message(message: str = Body(..., embed=True)):
     extra = await async_query(task_url=url, text=message)
 
     return extra
-
-
-async def async_query(task_url: str, timeout: int = 5, **kwargs):
-    """Выполняет post-запрос во внутренний rest api сервис
-
-    Args:
-        task_url: ссылка на endpoint
-        timeout: таймаут запроса
-        **kwargs: параметры тела запроса
-    """
-    timeout = ClientTimeout(total=timeout)
-    async with ClientSession(timeout=timeout) as session:
-        async with session.post(task_url, json=kwargs) as response:
-            result = await response.json()
-            if response.status != 200:
-                raise Exception
-    return result

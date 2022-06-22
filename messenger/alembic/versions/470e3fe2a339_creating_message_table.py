@@ -21,10 +21,11 @@ def upgrade():
     op.create_table('messages',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('user_chat_id', sa.Integer(), nullable=False),
-    sa.Column('text', sa.Text(), nullable=True),
+    sa.Column('text', sa.Text(collation='utf8_general_ci'), nullable=True),
     sa.Column('created_date', sa.DateTime(), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=False),
     sa.Column('edited', sa.Boolean(), server_default=expression.false(), nullable=False),
     sa.Column('read', sa.Boolean(), server_default=expression.false(), nullable=False),
+    sa.Column('maybesent', sa.Boolean(), server_default=expression.true(), nullable=False),
     sa.ForeignKeyConstraint(['user_chat_id'], ['users_chats.id'], ),
     sa.PrimaryKeyConstraint('id')
     )

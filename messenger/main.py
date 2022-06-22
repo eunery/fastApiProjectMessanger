@@ -9,6 +9,9 @@ from endpoints.message import router as message_router
 from core.db.session import engine
 from core.db.models import Base
 
+import subprocess
+import atexit
+
 app = FastAPI()
 
 app.include_router(user_router, tags=["user"])
@@ -20,6 +23,7 @@ app.include_router(message_router, tags=["message"])
 
 if __name__ == "__main__":
     Base.metadata.create_all(engine)
+    subprocess.Popen(['./run_celery.sh'])
     uvicorn.run(
         "main:app",
         host='127.0.0.1',
@@ -27,3 +31,11 @@ if __name__ == "__main__":
         reload=True,
         debug=True,
     )
+
+
+def on_stop():
+    print(">>>>>>>>>>>>>>>>> KILLING CELERY <<<<<<<<<<<<<<<<<<<")
+    subprocess.Popen(['./kill_celery.sh'])
+
+
+atexit.register(on_stop)
